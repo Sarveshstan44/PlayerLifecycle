@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Player Lifecycle — Operations Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0B0D12;
+    --bg-panel:#12151C;
+    --bg-raised:#181C26;
+    --felt:#0F3D2E;
+    --gold:#C9A24B;
+    --gold-bright:#E8C874;
+    --rose:#D9534F;
+    --teal:#3FB8AF;
+    --text:#F2EFE9;
+    --muted:#8B93A1;
+    --line:#262B36;
+    --radius:2px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  .display{font-family:'Bebas Neue',sans-serif; letter-spacing:0.02em;}
+
+  .wrap{max-width:1120px; margin:0 auto; padding:0 32px;}
+
+  /* subtle felt texture backdrop for whole page */
+  body{
+    background-image:
+      radial-gradient(ellipse 1200px 600px at 15% -10%, rgba(15,61,46,0.35), transparent 60%),
+      radial-gradient(ellipse 900px 500px at 105% 10%, rgba(201,162,75,0.08), transparent 60%);
+    background-attachment:fixed;
+  }
+
+  /* ---------- HERO ---------- */
+  header.hero{
+    padding:110px 0 80px;
+    border-bottom:1px solid var(--line);
+    position:relative;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:0.28em;
+    text-transform:uppercase;
+    color:var(--gold);
+    display:flex; align-items:center; gap:10px;
+    margin-bottom:26px;
+  }
+  .eyebrow::before{
+    content:"";
+    width:22px; height:1px; background:var(--gold);
+  }
+  h1.title{
+    font-family:'Bebas Neue',sans-serif;
+    font-size:clamp(48px,7vw,96px);
+    line-height:0.95;
+    letter-spacing:0.01em;
+    max-width:900px;
+    color:var(--text);
+  }
+  h1.title span{color:var(--gold-bright);}
+  .hero-sub{
+    max-width:620px;
+    margin-top:26px;
+    color:var(--muted);
+    font-size:17px;
+  }
+  .hero-stats{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:1px;
+    background:var(--line);
+    margin-top:60px;
+    border:1px solid var(--line);
+  }
+  .stat{
+    background:var(--bg-panel);
+    padding:22px 20px;
+  }
+  .stat .num{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:30px;
+    font-weight:600;
+    color:var(--gold-bright);
+  }
+  .stat .lbl{
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-top:6px;
+  }
+
+  /* ---------- SECTION SCAFFOLD ---------- */
+  section{padding:90px 0;}
+  section + section{border-top:1px solid var(--line);}
+  .section-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap:24px;
+    margin-bottom:52px;
+    flex-wrap:wrap;
+  }
+  .section-head h2{
+    font-family:'Bebas Neue',sans-serif;
+    font-size:clamp(32px,4vw,44px);
+    letter-spacing:0.01em;
+  }
+  .section-head p{color:var(--muted); max-width:420px; font-size:14.5px;}
+  .tag{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--felt);
+    background:var(--gold);
+    padding:4px 10px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    display:inline-block;
+    border-radius:2px;
+  }
+
+  /* ---------- FLOW / TIMELINE ---------- */
+  .flow{position:relative; padding-left:64px;}
+  .flow::before{
+    content:"";
+    position:absolute; left:23px; top:8px; bottom:8px;
+    width:2px;
+    background:linear-gradient(to bottom, var(--gold) 0%, var(--line) 8%, var(--line) 92%, var(--gold) 100%);
+  }
+  .stage{
+    position:relative;
+    padding-bottom:46px;
+  }
+  .stage:last-child{padding-bottom:0;}
+  .chip{
+    position:absolute; left:-64px; top:0;
+    width:48px; height:48px;
+    border-radius:50%;
+    background:var(--bg-raised);
+    border:2px solid var(--gold);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'IBM Plex Mono',monospace;
+    font-weight:600;
+    color:var(--gold-bright);
+    font-size:14px;
+    z-index:2;
+  }
+  .stage.branch .chip{border-color:var(--teal); color:var(--teal);}
+  .stage-card{
+    background:var(--bg-panel);
+    border:1px solid var(--line);
+    padding:22px 26px;
+  }
+  .stage-card h3{
+    font-size:18px;
+    font-weight:700;
+    margin-bottom:6px;
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  }
+  .stage-card .who{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    background:var(--bg-raised);
+    padding:3px 8px;
+    border:1px solid var(--line);
+  }
+  .stage-card p{color:var(--muted); font-size:14px; margin-top:8px;}
+  .branch-row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+    margin-top:16px;
+  }
+  .branch-opt{
+    border:1px solid var(--line);
+    padding:14px 16px;
+    font-size:13.5px;
+    position:relative;
+  }
+  .branch-opt.pos{border-left:3px solid var(--teal);}
+  .branch-opt.neg{border-left:3px solid var(--rose);}
+  .branch-opt .pct{
+    font-family:'IBM Plex Mono',monospace;
+    font-weight:600;
+    color:var(--gold-bright);
+    display:block;
+    font-size:20px;
+    margin-bottom:2px;
+  }
+  .action-line{
+    margin-top:14px;
+    padding-top:14px;
+    border-top:1px dashed var(--line);
+    font-size:13px;
+    color:var(--gold-bright);
+    display:flex;
+    gap:8px;
+  }
+  .action-line b{color:var(--text); font-weight:600;}
+
+  /* ---------- CHART ---------- */
+  .chart-panel{
+    background:var(--bg-panel);
+    border:1px solid var(--line);
+    padding:32px 30px 20px;
+  }
+  .chart-panel .note{
+    font-size:12px; color:var(--muted); margin-top:14px;
+    font-family:'IBM Plex Mono',monospace;
+  }
+  canvas{max-height:360px;}
+
+  /* ---------- TABLE ---------- */
+  table{width:100%; border-collapse:collapse; font-size:13.5px;}
+  thead th{
+    text-align:left;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--gold);
+    padding:12px 14px;
+    border-bottom:1px solid var(--gold);
+    white-space:nowrap;
+  }
+  tbody td{
+    padding:14px;
+    border-bottom:1px solid var(--line);
+    color:var(--text);
+    vertical-align:top;
+  }
+  tbody td.muted{color:var(--muted);}
+  tbody tr:hover{background:var(--bg-raised);}
+  .pill{
+    display:inline-block;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    padding:3px 8px;
+    border:1px solid var(--line);
+    color:var(--muted);
+    margin:2px 4px 2px 0;
+    white-space:nowrap;
+  }
+
+  /* ---------- LOOP DIAGRAM ---------- */
+  .loop-wrap{display:grid; grid-template-columns:1.1fr 1fr; gap:56px; align-items:center;}
+  .loop-svg{width:100%; height:auto;}
+  .loop-legend{display:flex; flex-direction:column; gap:16px;}
+  .loop-item{
+    display:flex; gap:14px; align-items:flex-start;
+    padding:14px 16px;
+    border:1px solid var(--line);
+    background:var(--bg-panel);
+  }
+  .loop-dot{width:10px; height:10px; border-radius:50%; margin-top:5px; flex-shrink:0;}
+  .loop-item h4{font-size:14.5px; font-weight:700;}
+  .loop-item p{font-size:12.5px; color:var(--muted); margin-top:3px;}
+
+  /* ---------- ACTION GRID ---------- */
+  .action-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:1px;
+    background:var(--line);
+    border:1px solid var(--line);
+  }
+  .action-card{
+    background:var(--bg-panel);
+    padding:24px 22px;
+  }
+  .action-card .stage-tag{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--gold);
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+  }
+  .action-card h4{font-size:16px; margin:8px 0 12px; font-weight:700;}
+  .action-card ul{list-style:none;}
+  .action-card li{
+    font-size:13px;
+    color:var(--muted);
+    padding-left:16px;
+    position:relative;
+    margin-bottom:8px;
+  }
+  .action-card li::before{
+    content:"→";
+    position:absolute; left:0; color:var(--teal);
+  }
+  .action-card .kpi{
+    margin-top:14px;
+    padding-top:12px;
+    border-top:1px dashed var(--line);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;
+    color:var(--gold-bright);
+  }
+
+  footer{
+    padding:50px 0 70px;
+    color:var(--muted);
+    font-size:12.5px;
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+
+  @media (max-width:820px){
+    .wrap{padding:0 20px;}
+    .hero-stats{grid-template-columns:repeat(2,1fr);}
+    .branch-row{grid-template-columns:1fr;}
+    .loop-wrap{grid-template-columns:1fr;}
+    .action-grid{grid-template-columns:1fr;}
+    .flow{padding-left:52px;}
+    .chip{left:-52px; width:40px; height:40px; font-size:12px;}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Player CRM &amp; Conversion — Operations Map</div>
+    <h1 class="title">The Player <span>Lifecycle</span>,<br>end to end.</h1>
+    <p class="hero-sub">Every stage a player moves through — and every lever the operator pulls to influence the next move. Built as a closed loop, not a funnel: the journey doesn't end at withdrawal, it restarts.</p>
+    <div class="hero-stats">
+      <div class="stat"><div class="num">8</div><div class="lbl">Lifecycle Stages</div></div>
+      <div class="stat"><div class="num">65%</div><div class="lbl">Re-deposit after loss*</div></div>
+      <div class="stat"><div class="num">6</div><div class="lbl">Teams involved</div></div>
+      <div class="stat"><div class="num">∞</div><div class="lbl">Loop, not funnel</div></div>
+    </div>
+  </div>
+</header>
+
+<section id="flow">
+  <div class="wrap">
+    <div class="section-head">
+      <div><span class="tag">01 — Journey</span><h2 style="margin-top:14px;">From first click to repeat deposit</h2></div>
+      <p>The full path a player takes, with the team accountable for each stage and the decision embedded in it.</p>
+    </div>
+
+    <div class="flow">
+
+      <div class="stage">
+        <div class="chip">01</div>
+        <div class="stage-card">
+          <h3>Discovery <span class="who">Affiliates · SEO · Social</span></h3>
+          <p>Player lands on the casino site via affiliate link, organic search, or social. Acquisition cost and channel quality are set here — everything downstream inherits this traffic's intent.</p>
+          <div class="action-line">→ <b>Action:</b> Tag every session by source at landing, not at deposit — you can't fix a channel you can't attribute.</div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="chip">02</div>
+        <div class="stage-card">
+          <h3>Registration <span class="who">Product · UX</span></h3>
+          <p>Browses games and offers, registers, verifies email or phone. This is the first hard drop-off point — friction here is pure loss, no second chance.</p>
+          <div class="action-line">→ <b>Action:</b> Cut required fields to the legal minimum at signup; move KYC-adjacent data collection to first-withdrawal, not registration.</div>
+        </div>
+      </div>
+
+      <div class="stage branch">
+        <div class="chip">03</div>
+        <div class="stage-card">
+          <h3>First Deposit <span class="who">Payments</span></h3>
+          <p>The account becomes a First Time Depositor (FTD). The welcome bonus decision happens right here.</p>
+          <div class="branch-row">
+            <div class="branch-opt pos"><span class="pct">Claims</span>Welcome bonus — enters a wagering-requirement path, higher short-term engagement.</div>
+            <div class="branch-opt neg"><span class="pct">Skips</span>No bonus — cleaner balance, often a higher-value or more cautious player.</div>
+          </div>
+          <div class="action-line">→ <b>Action:</b> Segment CRM messaging by this choice on day one — bonus-skippers respond to cashback, not free spins.</div>
+        </div>
+      </div>
+
+      <div class="stage branch">
+        <div class="chip">04</div>
+        <div class="stage-card">
+          <h3>Gameplay <span class="who">Gaming Operations</span></h3>
+          <p>Player picks a product and plays. Product choice at this stage predicts long-term value more than any acquisition variable.</p>
+          <div class="branch-row">
+            <div class="branch-opt pos">Slots</div>
+            <div class="branch-opt pos">Live Casino</div>
+          </div>
+          <div class="branch-row" style="margin-top:0;">
+            <div class="branch-opt pos">Sportsbook</div>
+            <div class="branch-opt neg">Cross-product play (highest LTV cohort)</div>
+          </div>
+          <div class="action-line">→ <b>Action:</b> Trigger a cross-sell nudge (e.g. live-casino free bet) the first time a slots-only player hits a session-length milestone.</div>
+        </div>
+      </div>
+
+      <div class="stage branch">
+        <div class="chip">05</div>
+        <div class="stage-card">
+          <h3>Outcome <span class="who">CRM · Promotions</span></h3>
+          <p>Every session resolves to a win or a loss, and each triggers a different CRM path.</p>
+          <div class="branch-row">
+            <div class="branch-opt neg"><span class="pct">Lose</span>Balance hits zero → refill decision → <b style="color:var(--gold-bright)">~65% re-deposit*</b> and continue playing.</div>
+            <div class="branch-opt pos"><span class="pct">Win</span>Requests a withdrawal → moves to KYC.</div>
+          </div>
+          <div class="action-line">→ <b>Action:</b> Fire a time-boxed reload offer within minutes of a zero-balance event — the 65% re-deposit window is short.</div>
+        </div>
+      </div>
+
+      <div class="stage branch">
+        <div class="chip">06</div>
+        <div class="stage-card">
+          <h3>KYC Verification <span class="who">Compliance · Support</span></h3>
+          <p>Withdrawal triggers identity verification, usually mandatory. This is the highest-trust, highest-abandonment moment in the whole lifecycle.</p>
+          <div class="branch-row">
+            <div class="branch-opt pos">Self-service document upload</div>
+            <div class="branch-opt neg">Assisted — customer support handles document issues</div>
+          </div>
+          <div class="action-line">→ <b>Action:</b> Pre-collect ID documents at deposit #2, not at first withdrawal — decouple compliance friction from payout anxiety.</div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="chip">07</div>
+        <div class="stage-card">
+          <h3>Withdrawal <span class="who">Payments</span></h3>
+          <p>KYC approved, funds released. A fast, transparent payout is the single biggest driver of long-term trust and reactivation willingness.</p>
+          <div class="action-line">→ <b>Action:</b> Publish an explicit payout-time SLA in-product; silence during processing is what drives support tickets and churn.</div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="chip">08</div>
+        <div class="stage-card">
+          <h3>Retention Loop <span class="who">CRM · VIP Team</span></h3>
+          <p>Cashback, reload bonuses, free spins, sports boosts and VIP perks pull the player back to deposit — and the journey restarts at gameplay, not at discovery.</p>
+          <div class="action-line">→ <b>Action:</b> Route every returning player straight to step 04 (skip re-onboarding) — treat retention traffic as a different funnel entirely from acquisition traffic.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<section id="funnel">
+  <div class="wrap">
+    <div class="section-head">
+      <div><span class="tag">02 — Conversion</span><h2 style="margin-top:14px;">Where the volume actually goes</h2></div>
+      <p>Illustrative benchmark shape of the funnel — use this as a template to plug in your own stage-by-stage numbers.</p>
+    </div>
+    <div class="chart-panel">
+      <canvas id="funnelChart"></canvas>
+      <div class="note">* Illustrative benchmark figures, not measured data — replace with your own conversion rates per stage.</div>
+    </div>
+  </div>
+</section>
+
+<section id="table">
+  <div class="wrap">
+    <div class="section-head">
+      <div><span class="tag">03 — Ownership</span><h2 style="margin-top:14px;">Touchpoints by department</h2></div>
+      <p>Who owns each moment, what the player is doing, and what the business is trying to achieve.</p>
+    </div>
+    <table>
+      <thead>
+        <tr><th>Stage</th><th>Player Action</th><th>Casino Goal</th><th>Team Involved</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><b>Acquisition</b></td><td class="muted">Finds casino through affiliate</td><td class="muted">Acquire new player</td><td><span class="pill">Affiliates</span><span class="pill">SEO</span><span class="pill">Marketing</span></td></tr>
+        <tr><td><b>Landing</b></td><td class="muted">Visits website</td><td class="muted">Drive registration</td><td><span class="pill">UX</span><span class="pill">Marketing</span></td></tr>
+        <tr><td><b>Registration</b></td><td class="muted">Creates account</td><td class="muted">Increase conversion</td><td><span class="pill">Product</span></td></tr>
+        <tr><td><b>First Deposit</b></td><td class="muted">Deposits funds</td><td class="muted">First Time Depositor (FTD)</td><td><span class="pill">Payments</span></td></tr>
+        <tr><td><b>Bonus</b></td><td class="muted">Claims or skips offer</td><td class="muted">Maximise engagement</td><td><span class="pill">CRM</span></td></tr>
+        <tr><td><b>Gameplay</b></td><td class="muted">Slots, Live Casino, Sportsbook</td><td class="muted">Revenue generation</td><td><span class="pill">Gaming Ops</span></td></tr>
+        <tr><td><b>Loss</b></td><td class="muted">Balance reaches zero</td><td class="muted">Encourage re-deposit</td><td><span class="pill">CRM</span><span class="pill">Promotions</span></td></tr>
+        <tr><td><b>Win</b></td><td class="muted">Requests withdrawal</td><td class="muted">Build trust</td><td><span class="pill">Payments</span></td></tr>
+        <tr><td><b>KYC</b></td><td class="muted">Uploads documents</td><td class="muted">Regulatory compliance</td><td><span class="pill">Compliance</span><span class="pill">Support</span></td></tr>
+        <tr><td><b>Withdrawal</b></td><td class="muted">Receives winnings</td><td class="muted">Positive experience</td><td><span class="pill">Payments</span></td></tr>
+        <tr><td><b>Retention</b></td><td class="muted">Reload, cashback, VIP</td><td class="muted">Repeat deposits</td><td><span class="pill">CRM</span><span class="pill">VIP Team</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="loop">
+  <div class="wrap">
+    <div class="section-head">
+      <div><span class="tag">04 — The Loop</span><h2 style="margin-top:14px;">Retention closes the circle</h2></div>
+      <p>Six CRM levers pull a withdrawn or lapsed player back into gameplay — restarting the cycle without going back through acquisition.</p>
+    </div>
+    <div class="loop-wrap">
+      <svg class="loop-svg" viewBox="0 0 480 480" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="240" cy="240" r="170" fill="none" stroke="#262B36" stroke-width="1.5" stroke-dasharray="3 6"/>
+        <circle cx="240" cy="240" r="64" fill="#12151C" stroke="#C9A24B" stroke-width="1.5"/>
+        <text x="240" y="234" text-anchor="middle" fill="#F2EFE9" font-family="Bebas Neue" font-size="20">RETURN &amp;</text>
+        <text x="240" y="256" text-anchor="middle" fill="#F2EFE9" font-family="Bebas Neue" font-size="20">DEPOSIT</text>
+
+        <!-- arrowhead marker -->
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+            <path d="M0,0 L8,4 L0,8 Z" fill="#C9A24B"/>
+          </marker>
+        </defs>
+        <circle cx="240" cy="240" r="112" fill="none" stroke="#C9A24B" stroke-width="1.5" marker-end="url(#arrow)"
+          stroke-dasharray="700" stroke-dashoffset="0" transform="rotate(-15 240 240)"/>
+
+        <!-- 6 nodes around circle: VIP, Cashback, Reload, Free Spins, Sports Boosts, CRM -->
+        <g font-family="IBM Plex Mono" font-size="12.5" fill="#F2EFE9">
+          <circle cx="240" cy="70" r="30" fill="#181C26" stroke="#3FB8AF" stroke-width="1.5"/>
+          <text x="240" y="75" text-anchor="middle">VIP</text>
+
+          <circle cx="386" cy="155" r="30" fill="#181C26" stroke="#3FB8AF" stroke-width="1.5"/>
+          <text x="386" y="160" text-anchor="middle">Cashback</text>
+
+          <circle cx="386" cy="325" r="30" fill="#181C26" stroke="#3FB8AF" stroke-width="1.5"/>
+          <text x="386" y="330" text-anchor="middle">Reload</text>
+
+          <circle cx="240" cy="410" r="30" fill="#181C26" stroke="#3FB8AF" stroke-width="1.5"/>
+          <text x="240" y="415" text-anchor="middle" font-size="11">Free Spins</text>
+
+          <circle cx="94" cy="325" r="34" fill="#181C26" stroke="#3FB8AF" stroke-width="1.5"/>
+          <text x="94" y="323" text-anchor="middle" font-size="10.5">Sports</text>
+          <text x="94" y="335" text-anchor="middle" font-size="10.5">Boosts</text>
+
+          <circle cx="94" cy="155" r="30" fill="#181C26" stroke="#3FB8AF" stroke-width="1.5"/>
+          <text x="94" y="160" text-anchor="middle">CRM</text>
+        </g>
+      </svg>
+
+      <div class="loop-legend">
+        <div class="loop-item"><div class="loop-dot" style="background:var(--teal);"></div><div><h4>VIP tiering</h4><p>Escalating perks for high-value players — protects your highest-LTV cohort from competitor poaching.</p></div></div>
+        <div class="loop-item"><div class="loop-dot" style="background:var(--teal);"></div><div><h4>Cashback</h4><p>Partial loss-rebate, scheduled and predictable — softens the sting of a losing session.</p></div></div>
+        <div class="loop-item"><div class="loop-dot" style="background:var(--teal);"></div><div><h4>Reload bonuses</h4><p>Deposit-matched offers timed to lapsing players — the direct trigger back into step 03/04.</p></div></div>
+        <div class="loop-item"><div class="loop-dot" style="background:var(--teal);"></div><div><h4>Free spins &amp; sports boosts</h4><p>Low-cost, high-frequency nudges that keep the app top-of-mind between sessions.</p></div></div>
+        <div class="loop-item"><div class="loop-dot" style="background:var(--gold);"></div><div><h4>CRM orchestration</h4><p>Decides who gets which lever, when — the actual engine driving the loop, not a single campaign.</p></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="actions">
+  <div class="wrap">
+    <div class="section-head">
+      <div><span class="tag">05 — Playbook</span><h2 style="margin-top:14px;">What to do with this map</h2></div>
+      <p>Three places to focus first, with the KPI that tells you if it's working.</p>
+    </div>
+    <div class="action-grid">
+      <div class="action-card">
+        <div class="stage-tag">Fix the leak</div>
+        <h4>Registration → First Deposit</h4>
+        <ul>
+          <li>Reduce signup fields to email/phone only</li>
+          <li>Offer 2–3 deposit methods max, ranked by local success rate</li>
+          <li>A/B test bonus-vs-no-bonus framing at the deposit screen</li>
+        </ul>
+        <div class="kpi">KPI → Reg-to-FTD conversion rate</div>
+      </div>
+      <div class="action-card">
+        <div class="stage-tag">Widen the loop</div>
+        <h4>Loss → Re-deposit window</h4>
+        <ul>
+          <li>Trigger reload offer within 15 minutes of zero balance</li>
+          <li>Cap offer frequency to avoid fatigue on high-frequency losers</li>
+          <li>Route by product — sportsbook vs. slots losers need different hooks</li>
+        </ul>
+        <div class="kpi">KPI → Re-deposit rate within 24h of loss</div>
+      </div>
+      <div class="action-card">
+        <div class="stage-tag">Remove the friction</div>
+        <h4>Withdrawal → KYC</h4>
+        <ul>
+          <li>Pre-collect ID at second deposit, not first withdrawal</li>
+          <li>Publish payout SLA inside the withdrawal screen itself</li>
+          <li>Route flagged documents to support before the player asks</li>
+        </ul>
+        <div class="kpi">KPI → Time from withdrawal request to funds received</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap" style="display:flex; justify-content:space-between; width:100%; flex-wrap:wrap; gap:12px;">
+    <span>Player Lifecycle Operations Map</span>
+    <span>Cyclical by design — the loop restarts at Gameplay, not Discovery.</span>
+  </div>
+</footer>
+
+<script>
+const ctx = document.getElementById('funnelChart').getContext('2d');
+new Chart(ctx, {
+  type: 'bar',
+  data: {
+    labels: ['Site Visitors','Registered','Email/Phone Verified','First Deposit (FTD)','Claimed Welcome Bonus','Active in Month 2','Requested Withdrawal'],
+    datasets: [{
+      label: '% of visitors remaining',
+      data: [100, 42, 35, 27, 19, 14, 9],
+      backgroundColor: (c) => {
+        const g = c.chart.ctx.createLinearGradient(0,0,c.chart.width,0);
+        g.addColorStop(0,'#C9A24B'); g.addColorStop(1,'#3FB8AF');
+        return g;
+      },
+      borderRadius: 2,
+      barThickness: 26
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor:'#181C26',
+        titleFont:{family:'IBM Plex Mono'},
+        bodyFont:{family:'IBM Plex Mono'},
+        callbacks: { label: (c) => c.raw + '% of original visitors' }
+      }
+    },
+    scales: {
+      x: {
+        min:0, max:100,
+        grid:{ color:'#262B36' },
+        ticks:{ color:'#8B93A1', font:{family:'IBM Plex Mono', size:11}, callback:(v)=>v+'%' }
+      },
+      y: {
+        grid:{ display:false },
+        ticks:{ color:'#F2EFE9', font:{family:'Inter', size:12.5} }
+      }
+    }
+  }
+});
+</script>
+
+</body>
+</html>
